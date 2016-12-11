@@ -12,7 +12,6 @@ urlpatterns = [
 ]
 
 # This is only needed when using runserver.
-# This is only needed when using runserver.
 if settings.DEBUG:
     urlpatterns = [
         url(r'^media/(?P<path>.*)$', django.views.static.serve,

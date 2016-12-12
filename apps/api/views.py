@@ -5,7 +5,6 @@ from apps.external_api.services.nba_service import nba_service_instance
 
 
 def nba_results(request, year, month, day):
-    print("bla")
     results = nba_service_instance.get_day_results(year, month, day)
     for index in results:
         if "skipSave" not in results[index]:

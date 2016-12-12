@@ -3,3 +3,4 @@ Django
 psycopg2
 lxml
 nba_py
+gunicorn

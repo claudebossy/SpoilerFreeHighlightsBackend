@@ -6,6 +6,7 @@
 #
 dj-database-url==0.4.1
 django==1.10.4
+gunicorn==19.6.0
 lxml==3.6.4
 nba-py==0.1.1a2
 psycopg2==2.6.2

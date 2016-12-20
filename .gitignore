@@ -3,3 +3,4 @@ VENV/
 .idea/
 envdir/*
 *.pyc
+.venv/

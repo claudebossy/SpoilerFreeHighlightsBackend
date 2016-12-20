@@ -26,6 +26,9 @@ class NBAService:
             raise AttributeError("nba_repository is null or not an instance of NBARepository")
         self.nba_repository = nba_repository
 
+    def get_nba_result(self, game_id):
+        return self.nba_repository.get_results_by_game_id(game_id)
+
     def get_day_results(self, year, month, day, quality="high"):
         results = []
         scoreboard = nba_py.Scoreboard(month=int(month), day=int(day), year=int(year))

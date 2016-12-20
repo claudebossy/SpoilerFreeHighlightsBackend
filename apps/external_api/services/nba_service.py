@@ -29,39 +29,44 @@ class NBAService:
     def get_nba_result(self, game_id):
         return self.nba_repository.get_results_by_game_id(game_id)
 
+    def from_linescore_to_game_result(self, linescore, date, quality):
+        game_results = {}
+        for score in linescore:
+            game_id = score["GAME_ID"]
+            if game_id in game_results:
+                game_results[game_id]["home_team"] = score["TEAM_ABBREVIATION"]
+                game_results[game_id]["home_points"] = None if not score["PTS"] else int(score["PTS"])
+            else:
+                game_results[game_id] = {
+                    "date": datetime.strptime(date, '%Y/%m/%d').date(),
+                    "game_id": game_id,
+                    "away_team": score["TEAM_ABBREVIATION"],
+                    "away_points": None if not score["PTS"] else int(score["PTS"]),
+                    "highlights": self.__get_highlights(
+                        date,
+                        self.nba_team_mapping[score["TEAM_ABBREVIATION"]],
+                        quality)
+                }
+        return game_results
+
     def get_day_results(self, year, month, day, quality="high"):
         results = []
         scoreboard = nba_py.Scoreboard(month=int(month), day=int(day), year=int(year))
         date = "%s/%s/%s" % (year, month, day)
-        for score in scoreboard.line_score():
-            game_id = score["GAME_ID"]
+
+        game_results = self.from_linescore_to_game_result(scoreboard.line_score(), date, quality)
+
+        for game_id in game_results:
             game = self.nba_repository.get_results_by_game_id(game_id)
-            if game and game.highlights is not None:
-                db_entry = json.loads(serializers.serialize('json', [game, ]))[0]["fields"]
-                db_entry["skipSave"] = True
-                results.append(db_entry)
-                continue
-            api_result = {
-                "name": score["TEAM_ABBREVIATION"],
-                "points": score["PTS"]
-            }
-            result_list = [item for item in results if "game_id" in item and item["game_id"] == game_id]
-            if len(result_list) > 0:
-                result = result_list[0]
-                result["home_team"] = api_result["name"]
-                result["home_points"] = None if not api_result["points"] else int(api_result["points"])
+            if game:
+                if game.is_incomplete():
+                    updated_game = self.nba_repository.update(game.id, game_results[game_id])
+                    results.append(updated_game.serialize())
+                else:
+                    results.append(game.serialize())
             else:
-                results.append({
-                    "date": datetime.strptime(date, '%Y/%m/%d').date(),
-                    "game_id": game_id,
-                    "id": None if not game else game.id,
-                    "away_team": api_result["name"],
-                    "away_points": None if not api_result["points"] else int(api_result["points"]),
-                    "highlights": self.__get_highlights(
-                        date,
-                        self.nba_team_mapping[api_result["name"]],
-                        quality)
-                })
+                new_game = self.nba_repository.create(game_results[game_id])
+                results.append(new_game.serialize())
         return results
 
     def __get_highlights(self, date, team, quality):
